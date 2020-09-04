@@ -654,6 +654,7 @@ int echo_mode = 0;
 int explain_mode = 0;
 int sparql_translate_mode = 0;
 int vert_row_out_mode = 0;
+int csv_rfc4180_no_encode_mode = 0;
 int csv_mode = 0;
 int csv_rfc4180_mode = 0;
 int profile_mode = 0;
@@ -2655,6 +2656,7 @@ struct name_var_pair isql_variables[] =
   add_var_def (_T("SPARQL_TRANSLATE"), (&sparql_translate_mode), INT_FLAG, OFF_ON),
   add_var_def (_T("VERT_ROW_OUTPUT"), (&vert_row_out_mode), INT_FLAG, OFF_ON),
   add_var_def (_T("CSV"), (&csv_mode), INT_FLAG, OFF_ON),
+  add_var_def (_T("CSV_RFC4180_NO_ENCODE"), (&csv_rfc4180_no_encode_mode), INT_FLAG, OFF_ON),
   add_var_def (_T("CSV_RFC4180"), (&csv_rfc4180_mode), INT_FLAG, OFF_ON),
   add_var_def (_T("PROFILE"), (&profile_mode), INT_FLAG, OFF_ON),
   add_var_def (_T("CSV_FIELD_SEPARATOR"), (&csv_field_separator), CHARPTR_VAR, NULL),
@@ -4846,20 +4848,27 @@ field_print_csv (TCHAR *str, SQLULEN w, int unused, int inx)
 void
 field_print_csv_rfc4180 (TCHAR *str, SQLULEN w, int unused, int inx)
 {
-  TCHAR *ch;
-  isqlt_puttchar ('"');
-  for (ch = str; *ch; ++ch)
+  if (csv_rfc4180_no_encode_mode)
     {
-      if (!isprint(*ch))
-        isqlt_tprintf (_T("%%%2.2hX"), (short)*ch);
-      else if (*ch == (TCHAR)('"'))
-	isqlt_tprintf (_T("\"\""));
-      else
-        isqlt_puttchar (*ch);
+      field_print_normal (str, w, 1, inx);
     }
-  isqlt_puttchar ('"');
-  if (inx < n_out_cols - 1)  /* not the rightmost column? */
-    isqlt_fputts (csv_rfc4180_field_separator, stdout);
+  else
+    {
+      TCHAR *ch;
+      isqlt_puttchar ('"');
+      for (ch = str; *ch; ++ch)
+        {
+          if (!isprint(*ch))
+            isqlt_tprintf (_T("%%%2.2hX"), (short)*ch);
+          else if (*ch == (TCHAR)('"'))
+            isqlt_tprintf (_T("\"\""));
+          else
+            isqlt_puttchar (*ch);
+        }
+      isqlt_puttchar ('"');
+      if (inx < n_out_cols - 1)  /* not the rightmost column? */
+        isqlt_fputts (csv_rfc4180_field_separator, stdout);
+    }
 }
 
 void
